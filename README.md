@@ -40,7 +40,34 @@ writeups/
 2. Add the row to the index above — folder, one-line subject, where it went
    upstream, and its status.
 3. Put anything the piece leans on in the same folder, next to the write-up.
-4. Push: this collection is mirrored to GitHub, see below.
+4. Render it and push it: both commands are below.
+
+## Rendered, and mirrored
+
+The folder is the source; two things are built from it.
+
+On this site, each folder is a page: `writeups/README.md` becomes
+<https://enigmaticred.com/writeups/> and `writeups/<slug>/README.md` becomes
+`https://enigmaticred.com/writeups/<slug>/`. `web/build_writeups.py` renders them
+into `web/writeups/`, `web/publish.py` stages them with the rest of the site, and
+`tests/test_writeups.py` fails when a page is not what the markdown says - so a
+write-up is never half-published.
+
+```
+python web/build_writeups.py             # render
+python web/build_writeups.py --check     # is web/writeups/ current?
+```
+
+On GitHub, this whole tree is mirrored folder for folder and is the collection's
+public home:
+
+<https://github.com/JMak-Security/enigmatic-red-writeups>
+
+Pushing it from this repository (the folders here are the source of truth):
+
+```
+git subtree push --prefix writeups https://github.com/JMak-Security/enigmatic-red-writeups.git main
+```
 
 ## Scope and conduct
 
