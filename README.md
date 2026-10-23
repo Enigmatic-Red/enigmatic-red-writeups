@@ -61,12 +61,13 @@ python web/build_writeups.py --check     # is web/writeups/ current?
 On GitHub, this whole tree is mirrored folder for folder and is the collection's
 public home:
 
-<https://github.com/JMak-Security/enigmatic-red-writeups>
+<https://github.com/Enigmatic-Red/enigmatic-red-writeups>
 
-Pushing it from this repository (the folders here are the source of truth):
+Pushing it from this repository (the folders here are the source of truth), once
+the repository exists on the account:
 
 ```
-git subtree push --prefix writeups https://github.com/JMak-Security/enigmatic-red-writeups.git main
+git subtree push --prefix writeups https://github.com/Enigmatic-Red/enigmatic-red-writeups.git main
 ```
 
 ## Scope and conduct
