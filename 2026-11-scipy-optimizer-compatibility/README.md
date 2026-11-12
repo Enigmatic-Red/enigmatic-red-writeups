@@ -1,45 +1,30 @@
-# Enigmatic Red: Keeping diffprivlib Logistic Regression Compatible with SciPy
+# Enigmatic Red: diffprivlib Logistic Regression and SciPy Compatibility
 
 *Enigmatic Red, a research lab for AI-specialized cybersecurity agents. November 2026*
 
-IBM's `diffprivlib` uses SciPy's L-BFGS-B optimizer to fit its differentially private logistic-regression model. Its call passed SciPy's `iprint` keyword, which was deprecated as a no-op and later removed from SciPy's API. On SciPy 1.18, the unsupported keyword raises `TypeError` before optimization starts. PR #113 removes it.
+An upstream fix in IBM's `diffprivlib` removes an obsolete keyword from the SciPy optimizer used by private logistic regression. The bug does not silently weaken differential privacy: with a SciPy version that rejects the keyword, fitting stops with a `TypeError`. This write-up follows the failure from the dependency API to the small upstream change, and distinguishes what we reproduced locally from the test results reported in the PR.
 
-This is a dependency-compatibility and availability fix in privacy software, not a vulnerability report. The change does not alter the private loss, privacy budget, sensitivity, or noise mechanism.
+## How we worked
 
-## What changed
+We checked the merged change in [PR #113](https://github.com/IBM/differential-privacy-library/pull/113) against SciPy's documented API history, then reproduced the rejected keyword on SciPy 1.18.1. We also ran a minimal optimization without the keyword to confirm the optimizer still executes. This isolates and verifies the API failure; it is not an independent end-to-end rerun of diffprivlib's logistic-regression tests.
 
 |  | diffprivlib |
 | --- | --- |
-| Pull request | [IBM/differential-privacy-library #113](https://github.com/IBM/differential-privacy-library/pull/113) |
-| Merged | November 6, 2026 |
-| Affected path | `diffprivlib/models/logistic_regression.py` |
-| Failure | `TypeError` at the SciPy optimizer call |
-| Impact | Logistic-regression fitting cannot proceed with a SciPy API that rejects `iprint` |
-| Patch | Remove the `verbose`-to-`iprint` mapping and the obsolete keyword |
+| Pull request | [PR #113](https://github.com/IBM/differential-privacy-library/pull/113) |
+| Broken behavior | Logistic regression cannot fit when SciPy rejects `iprint` |
+| Failure mode | `TypeError` at the optimizer call |
+| Impact class | Dependency compatibility and availability |
+| Patch | Remove the obsolete `iprint` mapping and keyword |
 
-## The failure
+## Case: Logistic regression passes a removed SciPy keyword
 
-The private logistic-regression path constructs a noisy loss, then calls `scipy.optimize.fmin_l_bfgs_b()` with that loss, its arguments, and convergence settings. Before the fix, the call also passed an `iprint` value derived from `verbose`.
-
-The version transition matters. SciPy 1.15 documents `iprint` as deprecated and says it no longer has a function. SciPy 1.17's documentation says it is scheduled for removal in 1.18. In SciPy 1.18.1, the public function signature no longer includes `iprint`, so forwarding that keyword raises:
+**Symptom.** The logistic-regression path calls `scipy.optimize.fmin_l_bfgs_b()` to minimize a noisy loss. It passed an `iprint` value derived from `verbose`. On SciPy 1.18.1, the optimizer no longer accepts that argument, so the fit raises:
 
 ```text
 TypeError: fmin_l_bfgs_b() got an unexpected keyword argument 'iprint'
 ```
 
-The failure occurs before L-BFGS-B evaluates the objective. This is not a convergence problem, and it does not produce a model with weaker noise: the fit aborts rather than returning a result.
-
-## Reproduction
-
-The included [reproduction script](./reproduce.py) isolates the optimizer API boundary. It uses an objective that returns both a scalar loss and its gradient, as expected by `fmin_l_bfgs_b` when `fprime=None`.
-
-Run it in an environment with SciPy 1.18.1:
-
-```text
-python reproduce.py
-```
-
-Observed locally:
+**Reproduction.** SciPy 1.15 documented `iprint` as deprecated and said it had no function. SciPy 1.17 documented its planned removal in 1.18; the current function signature omits it. The [included reproduction script](./reproduce.py) calls the optimizer both ways on SciPy 1.18.1:
 
 ```text
 SciPy 1.18.1
@@ -47,34 +32,20 @@ before: TypeError: fmin_l_bfgs_b() got an unexpected keyword argument 'iprint'
 after: converged with x= [0.0] value= 0.0 warnflag= 0
 ```
 
-This reproduction confirms the removed-keyword failure and that the same optimizer can run without the keyword. It is an isolated SciPy API reproduction, not an independent end-to-end rerun of diffprivlib's private logistic-regression suite.
+This confirms the dependency-boundary failure and that the optimizer can run without the unsupported keyword. It does not by itself prove the full diffprivlib model behavior.
 
-## Root cause and fix
+**Root cause.** `diffprivlib/models/logistic_regression.py` continued passing `iprint` after SciPy had deprecated it as a no-op and scheduled its removal. The stale argument was the failure point; it was not a problem with the private loss or optimizer convergence.
 
-The immediate cause was a stale keyword at the dependency boundary: diffprivlib continued to pass `iprint` after SciPy deprecated it and scheduled its removal. The value was selected from `verbose`, but SciPy had already documented the option as having no function.
+**Fix.** PR #113 removes the mapping from `verbose` to `iprint` and drops the keyword from the `fmin_l_bfgs_b()` call. The noisy objective, its arguments, regularization strength, and convergence settings remain unchanged. The change removes an obsolete low-level output option.
 
-PR #113 removes both the `iprint` mapping and the keyword argument from the optimizer call. The noisy objective, its data arguments, regularization strength, and convergence parameters remain unchanged. The change removes an obsolete optimizer-output setting; it does not change the optimization objective or differential-privacy calculations.
+**Proof.** The local reproduction above fails with `iprint` and converges without it on SciPy 1.18.1. The PR description reports that `python -m pytest tests/models/test_LogisticRegression.py -q` passed all 17 tests; that suite result is reported by the contributor, not independently rerun for this write-up. The merged PR changes one production file and received maintainer approval.
 
-## Verification and evidence
+**Scope.** This is a compatibility and availability issue in privacy software, not an identified security vulnerability. The fit fails rather than returning a model with less noise. The patch does not change epsilon, sensitivity, privacy accounting, or the noise mechanism. We found no evidence of an attacker-controlled trigger or data exposure.
 
-- The merged diff changes one production file: `diffprivlib/models/logistic_regression.py`; it removes two lines and adds one call-continuation line.
-- The PR description reports running `python -m pytest tests/models/test_LogisticRegression.py -q` with **17 passed**. That is the contributor-reported suite result; it was not independently rerun for this article.
-- I independently reproduced the keyword rejection with SciPy 1.18.1 and confirmed the same minimal optimization succeeds when called without `iprint`.
-- A maintainer approved the PR, and it was merged on November 6, 2026.
+## What this shows
 
-## Security assessment
+An API deprecation can break a privacy-preserving workflow even when the algorithm itself has not changed. Testing dependency version ranges catches failures that a test run against only one environment may miss. At the same time, a runtime failure should not be described as a weakened privacy guarantee when the evidence shows that fitting aborts.
 
-The security relevance is operational: a dependency update can make a privacy-preserving model path unavailable if integrations continue passing removed API arguments. The evidence supports a runtime compatibility failure, not an exploitable vulnerability.
+## Status
 
-Specifically, this change does not modify epsilon, sensitivity, privacy accounting, the noisy loss, or data handling. No attacker-controlled input or attack path is identified. Calling this a privacy-guarantee fix or claiming that it prevented data disclosure would go beyond the evidence.
-
-## Takeaway
-
-Dependency compatibility is part of keeping privacy software usable, but not every bug in privacy software is a privacy vulnerability. Pinning and testing supported dependency versions, watching deprecation schedules, and checking the actual function signature can catch this class of failure before users encounter it. When documenting the impact, distinguish a model that cannot run from one that runs while silently violating its privacy contract.
-
-## References
-
-- [Merged PR #113](https://github.com/IBM/differential-privacy-library/pull/113)
-- [SciPy 1.15 `fmin_l_bfgs_b` documentation](https://docs.scipy.org/doc/scipy-1.15.0/reference/generated/scipy.optimize.fmin_l_bfgs_b.html)
-- [SciPy 1.17 `fmin_l_bfgs_b` documentation](https://docs.scipy.org/doc/scipy-1.17.0/reference/generated/scipy.optimize.fmin_l_bfgs_b.html)
-- [Current SciPy `fmin_l_bfgs_b` documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_l_bfgs_b.html)
+PR #113 was merged on November 6, 2026. SciPy's [1.15 documentation](https://docs.scipy.org/doc/scipy-1.15.0/reference/generated/scipy.optimize.fmin_l_bfgs_b.html) marks `iprint` deprecated and nonfunctional; SciPy's [1.17 documentation](https://docs.scipy.org/doc/scipy-1.17.0/reference/generated/scipy.optimize.fmin_l_bfgs_b.html) documents its planned removal in 1.18. The failure was reproduced locally on SciPy 1.18.1.
