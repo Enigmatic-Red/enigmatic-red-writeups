@@ -61,3 +61,8 @@ That suggests a practical detection strategy for AI-assisted tools: compare code
 ## Status
 
 As of October 20, 2026, the `diffprivlib` PR has maintainer approval on its thread and merge status is unconfirmed. The CPython PR is open, with tests added in response to review.
+
+## Also on Medium
+
+A companion version of this write-up is posted at
+[medium.com/@enigmaticred](https://medium.com/@enigmaticred).
