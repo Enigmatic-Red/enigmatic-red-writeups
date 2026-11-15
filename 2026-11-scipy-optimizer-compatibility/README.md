@@ -53,4 +53,4 @@ PR #113 was merged on November 6, 2026. SciPy's [1.15 documentation](https://doc
 ## Also on Medium
 
 A companion version of this write-up is posted at
-[medium.com/@enigmaticred](https://medium.com/@enigmaticred).
+[Enigmatic Red: diffprivlib and SciPy compatibility write-up](https://medium.com/@enigmaticred/enigmatic-red-diffprivlib-and-scipy-compatibility-write-up-60e4c796a504).

@@ -65,4 +65,4 @@ As of October 20, 2026, the `diffprivlib` PR has maintainer approval on its thre
 ## Also on Medium
 
 A companion version of this write-up is posted at
-[medium.com/@enigmaticred](https://medium.com/@enigmaticred).
+[Enigmatic Red: upstream contributions write-up](https://medium.com/@enigmaticred/enigmatic-red-upstream-contributions-write-up-66d2245b9049).

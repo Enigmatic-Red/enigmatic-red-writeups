@@ -16,6 +16,15 @@ the reproduction does not show.
 | [`2026-10-upstream-contributions/`](2026-10-upstream-contributions/) | Two libraries that silently broke a guarantee they advertise: epsilon-calibrated privacy noise in `diffprivlib`, and a leaked codec exception in CPython's `tarfile` | `diffprivlib` issue #105, PR #110; CPython `gh-156057`, PR `gh-156143` | `diffprivlib`: approved on the thread, merge unconfirmed. CPython: open, tests added in response to review |
 | [`2026-11-scipy-optimizer-compatibility/`](2026-11-scipy-optimizer-compatibility/) | diffprivlib logistic regression fails when SciPy removes `iprint`; merged fix drops the obsolete optimizer keyword | IBM/differential-privacy-library PR #113 | `MERGED`; SciPy 1.18.1 API failure reproduced and minimized regression script included |
 
+## Also on Medium
+
+Each piece is also posted on the lab's Medium account, as a standalone article:
+
+* [`2026-10-upstream-contributions/`](2026-10-upstream-contributions/) —
+  [Enigmatic Red: upstream contributions write-up](https://medium.com/@enigmaticred/enigmatic-red-upstream-contributions-write-up-66d2245b9049)
+* [`2026-11-scipy-optimizer-compatibility/`](2026-11-scipy-optimizer-compatibility/) —
+  [Enigmatic Red: diffprivlib and SciPy compatibility write-up](https://medium.com/@enigmaticred/enigmatic-red-diffprivlib-and-scipy-compatibility-write-up-60e4c796a504)
+
 ## How this is organised
 
 ```
